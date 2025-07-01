@@ -79,6 +79,7 @@ for (let optionId of optionIds) {
 
 let clientId = null;
 let clientCount = 0;
+// let minClientCount = 24;currentGameState === 2
 let gameState = null;
 let chosenAnswers = [0, 0, 0, 0];
 let playerSpots = { 1: "", 2: "", 3: "", 4: "" };
@@ -88,9 +89,6 @@ let registeredZuschauers = new Map();
 const auswahlTimeout = 20;
 const zeichnenTimeout = 40;
 
-/*************************************************************
- * start
- */
 function startMaster() {
   gameControlButton.addEventListener("click", updateGameState);
 }
@@ -129,7 +127,6 @@ function checkWinnerWord() {
 
   const maxValue = Math.max(...chosenAnswers);
 
-  
   const maxLabels = chosenAnswers
     .map((v, i) => (v === maxValue ? labels[i] : null))
     .filter((l) => l !== null);
@@ -223,7 +220,6 @@ function updateGameState() {
   } else if (gameState === 1) {
     countdownFrom(zeichnenTimeout, 1, 500, 2, (currentValue) => {
       if (gameState === 2) {
-        // console.log("zeichnen noch " + currentValue + " Sekunden aktiv");
         sendRequest("*set-data*", "remainingTime", currentValue);
       }
     });
@@ -246,10 +242,8 @@ function updateGameState() {
   console.log("sent gameState");
 }
 
-/*websocket communication*/
 const socket = new WebSocket(webRoomsWebSocketServerAddr);
 
-// listen to opening websocket connections
 socket.addEventListener("open", (event) => {
   sendRequest("*enter-room*", "SplitDraw");
   sendRequest("*subscribe-client-count*");
@@ -263,7 +257,6 @@ socket.addEventListener("open", (event) => {
   gameState = 0;
   sendRequest("*set-data*", "gameState", 0);
 
-  // ping the server regularly with an empty message to prevent the socket from closing
   setInterval(() => socket.send(""), 30000);
 });
 
@@ -272,7 +265,6 @@ socket.addEventListener("close", (event) => {
   document.body.classList.add("disconnected");
 });
 
-// listen to messages from server
 socket.addEventListener("message", (event) => {
   const data = event.data;
 
@@ -280,7 +272,6 @@ socket.addEventListener("message", (event) => {
     const incoming = JSON.parse(data);
     const selector = incoming[0];
 
-    // dispatch incomming messages
     switch (selector) {
       case "*client-id*":
         clientId = incoming[1];
@@ -308,7 +299,6 @@ socket.addEventListener("message", (event) => {
       case "*client-exit*": {
         const exitClientId = incoming[1];
 
-        // Delete clientId from playerSpots object (overwrite with empty string)
         for (let i = 0; i < 4; i++) {
           if (playerSpots[i + 1] === exitClientId) {
             playerSpots[i + 1] = "";
@@ -317,7 +307,6 @@ socket.addEventListener("message", (event) => {
         }
         sendRequest("*set-data*", "playerSpots", playerSpots);
 
-        // Delete clientId from registeredPlayers or registeredZuschauers
         if (registeredPlayers.has(exitClientId)) {
           registeredPlayers.delete(exitClientId);
           sendRequest("*set-data*", "registeredPlayers", [
@@ -374,9 +363,7 @@ socket.addEventListener("message", (event) => {
       case "gameState": {
         gameState = incoming[1];
 
-        // update content
         if (gameState === 0) {
-          // Spiel direkt starten wenn 4 Spieler da sind
           console.log(registeredPlayers.size);
           if (
             registeredPlayers.size + registeredZuschauers.size >= 4 &&
@@ -407,10 +394,9 @@ socket.addEventListener("message", (event) => {
 
             console.log(allClientIds);
 
-            // shuffle array of clientIds
             for (let i = allClientIds.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
-              // Swap elements in place
+
               [allClientIds[i], allClientIds[j]] = [
                 allClientIds[j],
                 allClientIds[i],
@@ -421,7 +407,6 @@ socket.addEventListener("message", (event) => {
               ];
             }
 
-            // assign the new roles to the shuffled clientIds
             registeredPlayers = new Map();
             registeredZuschauers = new Map();
 
@@ -435,7 +420,7 @@ socket.addEventListener("message", (event) => {
 
             console.log(registeredPlayers);
             console.log(registeredZuschauers);
-            //  set new  roles as room data
+
             sendRequest("*set-data*", "newRole", [
               [...registeredPlayers],
               [...registeredZuschauers],
