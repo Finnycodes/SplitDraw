@@ -460,3 +460,4 @@ function sendRequest(...message) {
   const str = JSON.stringify(message);
   socket.send(str);
 }
+
