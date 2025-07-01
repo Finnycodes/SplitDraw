@@ -15,7 +15,7 @@ const webRoomsWebSocketServerAddr = "https://nosch.uber.space/web-rooms/";
 // window.addEventListener(
 //   "click",
 //   () => {
-//     const lofi = document.getElementById("lofi");
+//     const bgMusic = document.getElementById("lofi");
 //     lofi.play().catch(() => {});
 //     lofi.pause(); // direkt wieder pausieren
 //   },
@@ -114,7 +114,7 @@ let playerName = null;
 let playerSpots = {};
 let isMouseDown = false;
 let newDraw = false;
-const auswahlTimeout = 20; //der 20sek Wortauswahl Timeout
+const auswahlTimeout = 20;
 const zeichnenTimeout = 40;
 
 let playersRandomized = false;
@@ -166,12 +166,10 @@ AFRAME.registerComponent("snow-generator", {
   },
 });
 
-// AFRAME Movement registrieren
 AFRAME.registerComponent("movement-detector", {
   tick: function () {
     const currentPosition = camera.object3D.position;
 
-    // Bewegung prüfen
     if (!lastPosition.equals(currentPosition)) {
       if (!isMoving) {
         isMoving = true;
@@ -179,15 +177,13 @@ AFRAME.registerComponent("movement-detector", {
         camera.emit("movementstart");
       }
 
-      // Reset des Stop-Timers
       clearTimeout(moveTimeout);
       moveTimeout = setTimeout(() => {
         isMoving = false;
         console.log("Bewegung gestoppt");
         camera.emit("movementend");
-      }, 300); 
+      }, 300);
 
-      // Position aktualisieren
       lastPosition.copy(currentPosition);
     }
   },
@@ -195,7 +191,8 @@ AFRAME.registerComponent("movement-detector", {
 
 // document.addEventListener("DOMContentLoaded", () => {
 
-// Komponente an Kamera anhängen
+// });
+
 camera.setAttribute("movement-detector", "");
 
 camera.addEventListener("movementstart", () => {
@@ -207,10 +204,6 @@ camera.addEventListener("movementend", () => {
   console.log("Benutzer ist stehen geblieben.");
   isMoving = false;
 });
-
-// #############################################################################
-// Register functions
-// -----------------------------------------------------------------------------
 
 document.getElementById("submitButton").addEventListener("click", () => {
   const inputValue = document.getElementById("userInput").value;
@@ -263,11 +256,9 @@ document.getElementById("submitButton").addEventListener("click", () => {
 
       playerName = inputValue;
 
-      // Eingabefeld verstecken
       document.getElementById("userInput").value = "";
       nameInputElem.style.display = "none";
 
-      // AFrame Movement registrieren
       const cameraEl = document.getElementById("camera");
       cameraEl.setAttribute("look-controls", "enabled: true");
 
@@ -280,15 +271,9 @@ document.getElementById("submitButton").addEventListener("click", () => {
   }
 });
 
-// #############################################################################
-// Voting functions
-// -----------------------------------------------------------------------------
-
-// 1. Variablen für Input und Button erstellen
 const inputElem = document.getElementById("zuschauerInput");
 const buttonElem = document.getElementById("zuschauerButton");
 
-// 2. Funktion, die den Vote abwickelt
 function handleVote() {
   const inputValue = inputElem.value;
 
@@ -303,13 +288,11 @@ function handleVote() {
   }
 }
 
-// 3. Event Listener für den Button-Klick
 buttonElem.addEventListener("click", handleVote);
 
-// 4. Event Listener für das Drücken der Enter-Taste im Inputfeld
 inputElem.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    event.preventDefault(); 
+    event.preventDefault();
     handleVote();
   }
 });
@@ -332,10 +315,6 @@ function displayVotes() {
   }
 }
 
-// #############################################################################
-// Canvas functions
-// -----------------------------------------------------------------------------
-
 setInterval(() => {
   if (drawing || newDraw) {
     drawOnCanvas();
@@ -354,7 +333,7 @@ function handleEnterPress(e) {
     document.getElementById("submitButton").click();
   }
 }
-// Enter überall im Dokument abfangen
+
 document.addEventListener("keydown", handleEnterPress);
 
 // document.getElementById("userInput").addEventListener("keydown", (event) => {
@@ -554,10 +533,6 @@ function sendCanvasToOthers() {
   // sendRequest("*broadcast-message*", message);
 }
 
-// #############################################################################
-// Timer Bar
-// -----------------------------------------------------------------------------
-
 function updateTimer(seconds) {
   container.style.display = "block";
 
@@ -575,9 +550,7 @@ function updateTimer(seconds) {
   bar.style.width = "0%";
 }
 
-// #############################################################################
-// General Cintent Update functions
-// -----------------------------------------------------------------------------
+// Client Update Funktionen
 
 function updateContent(currentGameState, senderClientId) {
   if (isPlayer) {
@@ -753,10 +726,6 @@ function resetAnswer() {
   setAnswer(null);
 }
 
-// #############################################################################
-// Auswahlverfahren functions
-// -----------------------------------------------------------------------------
-
 function registerOptionClicks() {
   for (let optionId of optionIds) {
     const textElem = document.querySelector(
@@ -799,13 +768,8 @@ function setAnswer(optionId) {
   }
 }
 
-// #############################################################################
-/****************************************************************
- * websocket communication
- */
 const socket = new WebSocket(webRoomsWebSocketServerAddr);
 
-// listen to opening websocket connections
 socket.addEventListener("open", (event) => {
   sendRequest("*enter-room*", "SplitDraw");
   sendRequest("*get-data*", "winnerWord");
@@ -823,7 +787,6 @@ socket.addEventListener("open", (event) => {
   sendRequest("*subscribe-data*", "canvas3-update");
   sendRequest("*subscribe-data*", "canvas4-update");
 
-  // ping the server regularly with an empty message to prevent the socket from closing
   setInterval(() => socket.send(""), 30000);
 });
 
@@ -840,7 +803,6 @@ socket.addEventListener("message", (event) => {
     const incoming = JSON.parse(data);
     const selector = incoming[0];
 
-    // dispatch incomming messages
     switch (selector) {
       case "*client-id*":
         clientId = incoming[1];
@@ -974,7 +936,6 @@ socket.addEventListener("message", (event) => {
       case "gameState": {
         gameState = incoming[1];
 
-        // update content
         if (gameState === 0) {
           hasVoted = false;
           resetAllCanvas();
@@ -1056,3 +1017,4 @@ function sendRequest(...message) {
   const str = JSON.stringify(message);
   socket.send(str);
 }
+
